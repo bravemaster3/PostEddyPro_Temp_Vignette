@@ -1,0 +1,37 @@
+---
+title: "PostEddyPro Usage"
+author: "Koffi"
+date: "24/07/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## How to use PostEddyPro package for gapfilling fluxes?
+# Loading the required libraries and your dataset
+```{r}
+library(PostEddyPro)
+library(data.table)
+df <- fread("data/sample_df.csv", header = TRUE)
+```
+
+# Running the gapfilling
+!!!Important to note that all the input parameters should not have gaps
+This means that they have been gapfilled prior to this step.
+```{echo = FALSE}
+gf_list <- xgboost_gapfiller(
+  #time stamp column
+  site_df=df,
+  #time stamp column
+  datetime="datetime",
+  #name of the flux column already quality checked and filtered 
+  flux_col="co2_flux_final",
+  #List of predictors for the XGBoost model. Note that "yearly_sin", "yearly_cos" and "delta" are calculated internally by the xgboost_gapfiller function
+  preds=c("Ta_f", "Ts_f", "SWin_f", "SWout_f", 
+  "VPD_f", "RH_f", "yearly_sin", 
+  "yearly_cos","delta"),
+  sitename="Halmyran" #This variable is simply for annotating the plots with the site name.
+)
+```
