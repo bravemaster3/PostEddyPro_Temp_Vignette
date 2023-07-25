@@ -1,11 +1,6 @@
 # PostEddyPro Vignette
 PostEddyPro R package usage for carbon flux data analysis
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-
 # How to use PostEddyPro package for gapfilling fluxes?
 
 ## Installing packages
