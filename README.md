@@ -3,9 +3,11 @@ PostEddyPro R package usage for carbon flux data analysis post Eddypro preproces
 
 # How to use PostEddyPro package for gapfilling fluxes?
 download this repository by clicking on the following link: https://github.com/bravemaster3/PostEddyPro_Temp_Vignette/archive/refs/heads/main.zip
+
 Unzip it. Then, open the PostEddyPro_Temp_Vignette.Rproj file, which should open a project in your Rstudio.
 The advantage of opening a project is that yit automatically sets your working directory to that project folder.
 You can also see files in the files tab (bottom right panel...).
+
 Click on the PostEddyPro_Usage.Rmd file from the file tab, or open from the folder.
 Then, you will have things similar to what is below...
 
