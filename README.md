@@ -1,7 +1,17 @@
 # PostEddyPro Vignette
-PostEddyPro R package usage for carbon flux data analysis
+PostEddyPro R package usage for carbon flux data analysis post Eddypro preprocessing.
 
 # How to use PostEddyPro package for gapfilling fluxes?
+download this repository by clicking on the following link: https://github.com/bravemaster3/PostEddyPro_Temp_Vignette/archive/refs/heads/main.zip
+Unzip it. Then, open the PostEddyPro_Temp_Vignette.Rproj file, which should open a project in your Rstudio.
+The advantage of opening a project is that yit automatically sets your working directory to that project folder.
+You can also see files in the files tab (bottom right panel...).
+Click on the PostEddyPro_Usage.Rmd file from the file tab, or open from the folder.
+Then, you will have things similar to what is below...
+
+You can copy your own dataset formated like the one named sample_df_oneyear.csv, into the data subfolder. So, after this, you will have it along with sample_df_oneyear.csv in the same "data" folder.
+
+Then, remember to replace the line where it is read by your own file
 
 ## Installing packages
 ```{r}
@@ -16,7 +26,7 @@ library(data.table)
 library(dplyr)
 library(parallel)
 library(foreach)
-df <- fread("data/sample_df_oneyear.csv", header = TRUE)
+df <- fread("data/sample_df_oneyear.csv", header = TRUE) #change to your own data here if you wish
 #VIEW DF TO ENSURE IT LOOKS GOOD, ESPECIALLY THE timestamp column
 View(df)
 ```
