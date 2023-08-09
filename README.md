@@ -40,7 +40,7 @@ This means that they have been gapfilled prior to this step.
 ```{r echo=FALSE}
 #If you want to try different hyper parameters instead, you can pass a list to tuning_grid argument. Read the help of xgboost_gapfiller by copying and running ?xgboost_gapfiller in your console
 gf_list <- xgboost_gapfiller(
-  #time stamp column
+  #the dataframe
   site_df=df,
   #time stamp column
   datetime="timestamp",
