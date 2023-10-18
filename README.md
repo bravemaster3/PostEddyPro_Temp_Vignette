@@ -101,7 +101,7 @@ formatting_fluxes_REddyProc(df=gf_list$site_df,
                             filename = "For_REddyproc")#it appends automatically a .txt extension
 ```
 
-#partitionning
+## partitionning
 ```{r}
 reddyproc_gapfiller(formatted_file_path="data/For_REddyproc.txt",
                     saving_folder="data",#this is the folder path
@@ -109,7 +109,7 @@ reddyproc_gapfiller(formatted_file_path="data/For_REddyproc.txt",
                     gapfill_flux = FALSE)
 ```
 
-#Montecarlo simulation
+## Montecarlo simulation
 
 ```{r}
 root_folder = "data" #you can change this to another path if you wish
