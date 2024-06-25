@@ -13,6 +13,8 @@ You can copy your own dataset formated like the one named sample_df_oneyear.csv,
 
 Then, remember to replace the line where it is read by your own file
 
+# How to use PostEddyPro package for gapfilling fluxes?
+
 ## Installing packages
 ```{r}
 install.packages("devtools")
@@ -26,15 +28,13 @@ library(data.table)
 library(dplyr)
 library(parallel)
 library(foreach)
-df <- fread("data/sample_df_oneyear.csv", header = TRUE) #change to your own data here if you wish
+df <- fread("data/sample_df_100_days.csv", header = TRUE)
 #VIEW DF TO ENSURE IT LOOKS GOOD, ESPECIALLY THE timestamp column
-View(df)
 ```
 
 ## Running the gapfilling
 !!!Important to note that all the input parameters should not have gaps
 This means that they have been gapfilled prior to this step.
-!!!WARNING!!! If you stop the following process before it ends, it will not free the memory cluster that is allocated. You will have to close Rstudio and open again, or kill several ongoing processes in your task manager.
 ```{r echo=FALSE}
 #If you want to try different hyper parameters instead, you can pass a list to tuning_grid argument. Read the help of xgboost_gapfiller by copying and running ?xgboost_gapfiller in your console
 gf_list <- xgboost_gapfiller(
@@ -130,6 +130,8 @@ mc_sim_hals_list <- montecarlo_sim(df_gf = gf_list$site_df, #the gapfilled flux 
 
 ## Explore the formula used for simulation
 ```{r}
+
+
 mc_sim_hals_list$slope_pos
 mc_sim_hals_list$intercept_pos
 
@@ -144,11 +146,17 @@ mc_sim_hals_list$intercept_neg
 ## Gapfilling each Montecarlo simulation using the best tuned hyperparameters
 
 ```{r}
+
+monte_dir_gf = file.path(root_folder, "Montecarlo_gf")
+if(dir.exists(monte_dir_gf)) unlink(monte_dir_gf, recursive = TRUE)
+if(!dir.exists(monte_dir_gf)) dir.create(monte_dir_gf)
+
 montecarlo_sim_gf_CO2_xgb(mc_sim_path = monte_dir,
                           best_tune = gf_list$tuningmodel$bestTune, #this is the best tuning during the caret crossvalidation, should be fetched from the saved RF gapfilling model prior to using this function
                           preds = c("Ta", "Ts", "SWin", "SWout", "VPD", "RH", "yearly_sin", "yearly_cos","delta"), #same as used in the original gapfilling
                           flux_col = "NEE",
-                          mc_sim_gf_path = monte_dir)
+                          mc_sim_gf_path = monte_dir_gf,
+                          datetime = "timestamp")
 ```
 
 
@@ -171,25 +179,32 @@ cl <- parallel::makePSOCKcluster(no_cores)
 doParallel::registerDoParallel(cl)
 #!!
 
-all_gf <- list.files(monte_dir, full.names = TRUE)
+all_gf <- list.files(monte_dir_gf, full.names = TRUE)
 
 `%dopar%` = foreach::`%dopar%`
 useless_output = foreach::foreach(file = all_gf, .packages = c("PostEddyPro", "data.table", "dplyr")) %dopar% {
   df <- data.table::fread(file)
-  df_compl <- gf_list$site_df %>% select("datetime", "LE", "H", "u*") %>% dplyr::left_join(df, by="datetime")
+  df_compl <- gf_list$site_df %>% select("timestamp", "LE", "H", "u_star") %>% dplyr::left_join(df, by="timestamp")
 
   formatting_fluxes_REddyProc(df=df_compl,
                               flux_col = "NEE_filled",
                               FLUX="NEE",
                               saving_path = format_monte_dir,
-                              filename = paste0("For_ReddyProc_",sub('\\.csv$', '',basename(file))))
+                              filename = paste0("For_ReddyProc_",sub('\\.csv$', '',basename(file))),
+                                                          rg_col = "SWin",
+                            tair_col = "Ta",
+                            tsoil_col = "Ts",
+                            rh_col = "RH",
+                            vpd_col = "VPD",
+                            ustar_col = "u_star",
+                              datetime = "timestamp")
 }
 #!!
 parallel::stopCluster(cl)
 foreach::registerDoSEQ()
 #!!
 
-#The previous was just partition
+#The previous was just formatting, and this one will do partitioning
 montecarlo_sim_noCH4_gf(mc_sim_path = format_monte_dir,
                           mc_sim_gf_path = monte_dir_pt,
                           flux_col="NEE",
