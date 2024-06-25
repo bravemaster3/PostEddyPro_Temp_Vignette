@@ -3,9 +3,11 @@ PostEddyPro R package usage for carbon flux data analysis post Eddypro preproces
 
 # How to use PostEddyPro package for gapfilling fluxes?
 download this repository by clicking on the following link: https://github.com/bravemaster3/PostEddyPro_Temp_Vignette/archive/refs/heads/main.zip
+
 Unzip it. Then, open the PostEddyPro_Temp_Vignette.Rproj file, which should open a project in your Rstudio.
 The advantage of opening a project is that yit automatically sets your working directory to that project folder.
 You can also see files in the files tab (bottom right panel...).
+
 Click on the PostEddyPro_Usage.Rmd file from the file tab, or open from the folder.
 Then, you will have things similar to what is below...
 
@@ -38,7 +40,7 @@ This means that they have been gapfilled prior to this step.
 ```{r echo=FALSE}
 #If you want to try different hyper parameters instead, you can pass a list to tuning_grid argument. Read the help of xgboost_gapfiller by copying and running ?xgboost_gapfiller in your console
 gf_list <- xgboost_gapfiller(
-  #time stamp column
+  #the dataframe
   site_df=df,
   #time stamp column
   datetime="timestamp",
@@ -99,7 +101,7 @@ formatting_fluxes_REddyProc(df=gf_list$site_df,
                             filename = "For_REddyproc")#it appends automatically a .txt extension
 ```
 
-#partitionning
+## partitionning
 ```{r}
 reddyproc_gapfiller(formatted_file_path="data/For_REddyproc.txt",
                     saving_folder="data",#this is the folder path
@@ -107,7 +109,7 @@ reddyproc_gapfiller(formatted_file_path="data/For_REddyproc.txt",
                     gapfill_flux = FALSE)
 ```
 
-#Montecarlo simulation
+## Montecarlo simulation
 
 ```{r}
 root_folder = "data" #you can change this to another path if you wish
