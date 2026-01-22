@@ -24,7 +24,8 @@ Then, remember to replace the line where it is read by your own file, and also m
 2. **Load libraries and data** - Load required packages and read your quality-checked eddy covariance data
 3. **Run gapfilling** - Use `rf_gapfiller_fast()` function with your data and predictors
 4. **Explore results** - View cross-validation metrics, plots, and the gapfilled dataset
+5. **Do montecarlo simulation** - if needed, proceed to do montecarlo simulation, or do it with your own scripts.
 
-**Important**: All input predictor variables must be gapfilled before running the Random Forest gapfilling step.
+**Important**: All input predictor variables must be gapfilled separately (not included in this guide) before running the Random Forest gapfilling step.
 
-See the `gapfilling_FCH4.Rmd` file for the complete workflow with executable code.
+See the [gapfilling_FCH4.Rmd](gapfilling_FCH4.Rmd) file for the complete workflow with executable code.
