@@ -1,0 +1,116 @@
+---
+title: "PostEddyPro Package Usage for CH4 Flux Gapfilling"
+output: html_document
+---
+
+# Installing packages
+```{r}
+install.packages("devtools")
+devtools::install_github("bravemaster3/PostEddyPro")
+```
+
+# Loading the required libraries and your dataset
+```{r echo = FALSE}
+library(PostEddyPro)
+library(data.table)
+library(dplyr)
+library(caret)
+df <- fread("data/EC_data_qc_filtered.csv", header = TRUE)
+#VIEW DF TO ENSURE IT LOOKS GOOD, ESPECIALLY THE timestamp column
+```
+
+# Running the gapfilling
+!!!Important to note that all the input parameters should not have gaps
+This means that they have been gapfilled prior to this step.
+```{r echo=FALSE}
+# IF YOU WANT TO TEST A SMALL SUBSECTION, UNCOMMENT FIRST THIS AND RUN. THE ROW NUMBERS ARE ONLY FOR THE SAMPLE DATASET. then ofcourse change "rf_gapfiller_fast(site_df=df," below to  "rf_gapfiller_fast(site_df=df_subset,"
+# df_subset <- df[1825:4014,]
+
+# Define a predictor list
+predictor_list <- c("Ta_f","Ts_f","WTD_f","Pa_f","PARin_f","PARout_f","RH_f","VPD_f","P_f","yearly_sin","yearly_cos","delta") 
+gapfilling_list <- rf_gapfiller_fast(site_df=df,
+                                     datetime="datetime",
+                                     flux_col="ch4_flux_final", # column containing the filtered, i.e. quality checked methane flux column
+                                       #List of predictors for the Random forest model. Change to what you have available. Note that "yearly_sin", "yearly_cos" and "delta" are calculated internally by the rf_gapfiller_fast function
+                                     preds=predictor_list,
+                                     max_mtry = NULL, #This is for trying values of mtry up to the max of either
+                                     #sqrt of the number of predictors, or the 1/3rd of the number of predictors
+                                     sitename="Halmyran" #This variable is simply for annotating the plots with the site name.
+)
+```
+```{r echo=FALSE}
+# Save the list if needed
+saveRDS(gapfilling_list, "output/gf_rds.RDS")
+# You can read it like this (uncomment to run it):
+# gapfilling_list <- readRDS("output/gf_rds.RDS")
+```
+
+```{r echo=FALSE}
+# You can visualize the predicted vs. measured from the cross validation
+gapfilling_list$pred_meas
+# Or the original vs. gapfilled after filling gaps on the model trained on the full available dataset
+gapfilling_list$gf_meas_time
+#Or view the final dataframe which includes the input given to the gapfilling function and the column "<flux_col>_filled", as well as the column "quality", that tells you which of the "<flux_col>_filled" values are original and which ones are gapfilled.
+View(gapfilling_list$site_df)
+# Or view the cross validation r² and rmse 
+gapfilling_list$r_sq_cv
+gapfilling_list$rmse_cv
+# Or see the content of the list with 
+str(gapfilling_list, max.level = 1)
+# Where final model is the random forest model trained on all available dataset, which is what is used for filling the gaps after doing cross validation. Then, the tuningmodel contains information about the best hyperparameters obtained during the cross validation and tuning.
+```
+
+
+# That was the end of the gapfilling, but if you also want to try some montecarlo simulation for uncertainty estimation, then modify the following script to achieve that
+# NOTE THAT HERE I named my timestamp column "datetime", and also, "ch4_flux_final" is my quality filtered column that I started with up in this code. if you have a different name, you will have to change that... "ch4_flux_final_filled" follows the same reasoning... some folders may need to be created, like the content of output (e.g., create "Montecarlo" inside output, etc.). Hopefully not too much to debug below.
+
+```{r echo=False}
+mc_sim_list <- montecarlo_sim(df_gf = gapfilling_list$site_df, #the gapfilled flux dataframe
+                                   df_cv = ggplot2::ggplot_build(gapfilling_list$pred_meas)$plot$data, # This is not saved, but in the previous list, but the graph was from the cross validation data, and so ggplot_build rebuilds the dataframe of the cross validation from this graph
+                                   flux_col="ch4_flux_final",#in df_cv # THIS COLUMN SHOULD BE YOUR quality filtered column, whatever you named it. Change the name here if you use a different name.
+                                   flux_pred_col="ch4_flux_final_filled", #From cross validation (df_cv) if you quality filtered data was named "FCH4", then this will be named "FCH4_filled"
+                                   datetime = "datetime", # Change to whatever you called your timestamp column
+                                   preds = predictor_list, # Same predictors here as you used for gapfilling
+                                   n = 100, # Number of montecarlo simulations you want to make
+                                   saving_folder = "output/Montecarlo", #change path if you don't want it to just go to your output folder in this working directory. make sure this directory exists
+                                   flux_sign = "positive" # this is because I use this function as well for CO2 fluxes, which can also be negative/positive
+)
+
+
+#Gapfilling montecarlo
+montecarlo_sim_gf(mc_sim_path = "output/Montecarlo",
+                  mtry = gapfilling_list$tuningmodel$bestTune$mtry, #this is the best tuning during the caret crossvalidation, should be fetched from the saved RF gapfilling model prior to using this function
+                  preds = predictor_list, #same as used in the original gapfilling
+                  flux_col = "ch4_flux_final", #the quality filtered column name (i.e. before gapfilling)
+                  mc_sim_gf_path = "output/Montecarlo_gf") #  make sure this directory exists
+
+#Merging gapfilled montecarlo
+df_mc <- merge_montecarlo_sims(dir = "output/Montecarlo_gf",
+                               saving_dir = "output/Montecarlo_gf_merged") # Make sure this directory exists
+
+# df_mc <- fread("output/Montecarlo_gf_merged/monte_carlo_all.csv")
+
+df_mc_sd <- df_mc %>% 
+  group_by(datetime) %>% 
+  summarise(gf_uncertainty = sd(ch4_flux_final_filled, na.rm = TRUE))
+
+# This gives you the gapfilling uncertainty, which you can still aggregate with the random mesurement error (as sqrt(gapfilling_error^2 + random error^2)
+
+#Preparing random measurement error
+err_df <- gapfilling_list$site_df %>% 
+  select(datetime, rand_err_ch4_flux, ch4_flux_final_filled, quality, all_of(predictor_list)) #This column "rand_err_ch4_flux" is from the eddypro output file, and should be in side_df if you have carried it over...
+
+err_df$rand_err_ch4_flux[which(err_df$quality == "gapfilled")] <- NA
+err_df$quality <- NULL
+preProcValues <- preProcess(err_df, method = c("bagImpute"))
+err_df_imp <- predict(preProcValues, err_df)
+
+plot(rand_err_ch4_flux~datetime, data=err_df_imp)
+
+# Then you can do the aggregation of rand_err_ch4_flux and 
+
+# Aggregate gapfilling uncertainty with random measurement error
+final_uncertainty <- err_df_imp %>%
+  left_join(df_mc_sd, by = "datetime") %>%
+  mutate(total_uncertainty = sqrt(rand_err_ch4_flux^2 + gf_uncertainty^2))
+```
